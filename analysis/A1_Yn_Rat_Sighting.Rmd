@@ -1,0 +1,234 @@
+---
+title: "Rat_Sightings_A1_YN"
+author: "Yashvi Nagda"
+date: "2025-03-04"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Summary
+
+While excavating the dataset, I needed to pose some basic questions:
+
+1)What areas experience most of the rat sightings?
+
+2)What is the division of rat sightings seasonally throughout time?
+
+3)What are rat sightings like by place type?
+
+In my initial examination, I observed some truly remarkable trends. A majority of the rat sightings occurred in residential areas, particularly within multi-family residences and 1-2 family dwellings. These cases were typically labeled as "pending," with little or no follow-up action being pursued. I had initially assumed that the topic of rat sightings would be mundane, but after doing more research, I found the trends in the furor of New York City very interesting. The borough rankings indicated Brooklyn consistently had the most rat sightings, followed  by Manhattan and the Bronx from 2010 to 2017. Brooklyn also experienced the biggest increase in sightings.
+
+Having a keen interest to know the period when such rat sightings occurred, I analyzed the seasonality and was amazed to observe that most rat sightings were during the summer and fall, with July and August being particularly peak periods in the past. This trend of seasonality reflects that the months of warm weather account for a high proportion of the rat population in the city, hinting at the need for intense pest control measures in these months.
+
+## Load Libraries
+
+```{r}
+library(tidyverse)
+library(lubridate)
+```
+
+## Data Background
+
+I obtained the dataset "Rat_Sightings.csv" from Kaggle.com provided by the professor.It is a dataset of dense information on rat sightings by area type and region of different New York City boroughs between 2010 and 2017. It captures how frequently rats were observed in particular regions throughout the city, giving information on patterns related to location and time throughout seven years.
+
+## Data Cleaning 
+
+The data set contained a couple of columns of irrelevant or missing data, such as "school not found," "school or citywide complaint," and "vehicle type," which were not relevant to this analysis. There were also "NA" values in certain categories that did not contribute anything useful to the big picture, so I excluded them to maintain the data clean and tight for analysis.
+
+```{r}
+rat_data <- read_csv("data/Rat_Sightings.csv", 
+               col_types = cols(
+                 `Created Date` = col_character(),
+                 `Closed Date` = col_character(),
+                 `Borough` = col_character(),
+                 `Complaint Type` = col_character(),
+                 `Descriptor` = col_character(),
+                 `Location Type` = col_character(),
+                 .default = col_guess()
+               ),
+               na = c("", "NA", "N/A"))
+
+# Check the first few rows again
+head(rat_data)
+
+```
+
+## Converting Data
+
+I used the Lubridate package to read in the dates and went ahead and created new columns for the year, month, day, and weekday. This allowed me to sort and organize the data better according to these time variables.
+
+```{r}
+# Convert "Created Date" to datetime format
+rat_data <- rat_data %>%
+  mutate(created_date = mdy_hms(`Created Date`))
+```
+
+```{r}
+# Extract year, month, day, and weekday
+rat_data <- rat_data %>%
+  mutate(
+    sighting_year = year(created_date),
+    sighting_month = month(created_date, label = TRUE),
+    sighting_day = day(created_date),
+    sighting_weekday = wday(created_date, label = TRUE)
+  )
+
+glimpse(rat_data)
+```
+
+# Graph 1 
+## Summarize the Number of Rat Sightings per Borough
+
+I did the following in the code:
+
+### Data Grouping and Summarizing (sightings_summary):
+
+I grouped the rat_data dataset first by two variables: Borough and sighting_year. I then applied the summarise() function to calculate the number of rat sightings (sightings_count) for each combination of Borough and sighting_year by calculating the number of rows (rat sightings) within each group using the n() function. To drop the grouping once summarized, I included the.groups = 'drop' argument. I also used the arrange() function to sort the summarized data by sighting_year and then Borough, so that the data was sorted chronologically by year and grouped by borough.
+
+### Data Visualization (ggplot):
+
+Next, I used the ggplot() function to create a line plot showing rat sightings by time (2010-2017) by borough. I specified aes(x = sighting_year, y = sightings_count, color = Borough, group = Borough), meaning that x will be utilized to represent sighting_year, and y will be utilized to represent sightings_count. Different colors and distinct groups will be utilized to represent various boroughs. I added lines between each borough using geom_line() to show the trend year by year, and used geom_point() to add individual points at each year's data, so that the counts by sighting are more visible. I included titles and axis labels through labs(), titleing the figure "Rat Sightings in NYC by Borough (2010-2017)" and labeling the axes as "Year" and "Number of Sightings." I incorporated a minimalist and clean theme with theme_minimal() to get rid of extraneous background features.
+
+### Saving the Plot:
+
+Finally, I saved the plot using the ggsave() function in PNG and PDF. I specified the dimensions as 10 inches by 6 inches and saved the plot to the "output" directory as "rat_sightings_by_borough.png" and "rat_sightings_by_borough.pdf."
+
+In general, the code I provide aggregates and displays rat-sighting patterns between different boroughs in New York City over a period of time. It helps to identify patterns at the borough level and compare patterns between years in the data.
+
+```{r}
+sightings_summary <- rat_data %>%
+  group_by(Borough, sighting_year) %>%
+  summarise(sightings_count = n(), .groups = 'drop') %>%
+  arrange(sighting_year, Borough)
+```
+
+```{r}
+
+ggplot(sightings_summary, aes(x = sighting_year, y = sightings_count, color = Borough, group = Borough)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Rat Sightings in NYC by Borough (2010-2017)", 
+       x = "Year", 
+       y = "Number of Sightings") +
+  theme_minimal()
+
+# Save the plot as PNG and PDF
+ggsave("output/rat_sightings_by_borough.png", width = 10, height = 6)
+ggsave("output/rat_sightings_by_borough.pdf", width = 10, height = 6)
+```
+
+### Analyses
+
+The numbers reveal that rat sightings across New York City boroughs from 2013 to 2017. Brooklyn has the most sightings across, followed by Manhattan, the Bronx, and Queens, with Staten Island experiencing significantly fewer sightings. From 2013 to 2016, except for Staten Island, all the boroughs experience a sharp increase in rat sightings, which declines in 2017. The year 2016 was the peak year with Brooklyn reporting approximately 6,000 sightings, which saw the steepest rise in rat sightings, almost doubling from a paltry 3,300 in 2013. Staten Island is fairly stable with low rates of between 500-700 sightings throughout the period. The general decrease in 2017 throughout all the boroughs reflects the likely effectiveness of pest control activities carried out during the year.
+
+The chart is successful at adhering to CRAP principles, with a different color per borough with strong contrast and visual continuity. It has good gridline alignment and well-spaced data points with easy-to-trace values. Healy's rules are observed, with explicit presentation of data, minimal chartjunk, and correct annual detail. Cairo's characteristics are evident in the honest and effective design, creating useful comparisons and beautiful color links. The map proves to be particularly useful in exposing the geographic layout of rat spotting, implying prospective disparities in borough-level pest elimination.
+
+
+# Graph 2 
+## Rat Sightings by Location Type
+
+Here's what I did for it in the code:
+
+### Data Grouping and Summarizing (sightings_summary):
+
+Firstly, I segregated the data based on the fields Location Type and sighting_year via the group_by() function. Then I utilized the summarise() function to return the counts of the sighted rats (sightings_count) across every grouping by Location Type and sighting_year by counting each of these group's rows with the n() function. The.groups = 'drop' argument drops the grouping after summarizing the data. I then applied arrange() to sort the data by sighting_year and Location Type so that the data was sorted chronologically by year and grouped by type of location.
+
+### Data Visualization (ggplot):
+I then created a stacked bar plot with ggplot() in order to display the rat sightings by location type for different years. I mapped the x-axis to the variable sighting_year, the y-axis to sightings_count, and the fill = 'Location Type' aesthetic to create the bars for different location types differently. I used geom_bar(stat = "identity", position = "stack") to produce a stacked bar chart where each bar holds the total sightings count for each year by location type. labs() function was used to assign the title ("Rat Sightings by Location Type in NYC (2010-2017)") and axis labels ("Year" and "Number of Sightings"). I have used the theme_minimal() to give the plot a minimalist appearance, and manipulated the x-axis text using theme(axis.text.x = element_text(angle = 0, hjust = 1)) to ensure that the labels are readable and properly aligned.
+
+### Saving the Plot:
+
+Finally, I exported the plot as PNG and PDF files using ggsave(), with the plots' dimensions set at 10 by 6 and saving the plots in the "output" directory as "rat_sightings_by_loc.png" and "rat_sightings_by_loc.pdf."
+
+Briefly, this code allows me to aggregate, summarize, and plot the trend of rat sightings by location type over time in New York City and display the distribution of sightings at various locations for each year.
+
+
+```{r}
+sightings_by_location <- rat_data %>%
+  group_by(`Location Type`, sighting_year) %>%
+  summarise(sightings_count = n(), .groups = 'drop') %>%
+  arrange(sighting_year, `Location Type`)
+```
+
+
+```{r}
+ggplot(sightings_by_location, aes(x = sighting_year, y = sightings_count, fill = `Location Type`)) +
+  geom_bar(stat = "identity", position = "stack") +
+  labs(title = "Rat Sightings by Location Type in NYC (2010-2017)",
+       x = "Year",
+       y = "Number of Sightings") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 0,hjust = 1))
+
+
+# Save the plot as PNG and PDF
+ggsave("output/rat_sightings_by_loc.png", width = 10, height = 6)
+ggsave("output/rat_sightings_by_loc.pdf", width = 10, height = 6)
+```
+
+### Analyses
+
+The graph indicates some notable trends in rat sightings in New York City from 2010 to 2017. Overall, rat sightings arose consistently from 2010 to 2016 but fell a bit in 2017. Most of these sightings were consistently in "1-2 Family Dwellings" and "3+ Family Apt. Buildings," which reported the highest number of sightings every year, namely in residential areas. Of special mention, 2016 had the most number of rat sightings with approximately 17,500 reports. Residential buildings, such as 1-2 Family Dwellings, 3+ Family Apartments, and mixed-use buildings, accounted for the most number of sightings, indicating the strong impact of the rat problem in these kinds of areas. While the trend of sightings by location type remained the same from 2010 to 2015, there was a high spike in reports from 1-2 Family Dwellings in 2016-2017. Public spaces, such as gardens and schools, represented minor but regular additions to the number of rat sightings. The graph suggests that housing areas, such as multi-family housing and single/double family dwellings, were hardest struck by the issue of rats, and the infestation increased immensely from 2015 to 2017.
+
+The chart follows the CRAP principles and Healy's guidelines using contrast, repetition, alignment, and proximity in a way to create a discernible and orderly visualisation. The chart presents the data correctly, does not contain chartjunk, and offers enough information to highlight year-wise trends of rat sightings. The stacked bar configuration effectively makes year-wise as well as area-wise comparisons while attracting attention towards predominant patterns.
+
+# Graph 3
+## Seasonal Distribution of Rat Sightings
+
+Here is what I did in the code:
+
+### Data Grouping and Summarizing (sightings_summary):
+
+I grouped the data by sighting_month and sighting_year using the group_by() function. I then used summarise() to tally up the number of rat sightings (sightings_count) per combination of sighting_month and sighting_year by counting the number of rows in each group using the n() function. The.groups = 'drop' argument is used to drop the grouping after summarizing the data. Next, I used arrange() to sort the data by sighting_year and sighting_month so that the data is in chronological order by year and month.
+
+### Data Visualization (ggplot):
+
+Next, I created a line plot using ggplot() to display the seasonal distribution of rat sightings across months and years. I placed sighting_month on the x-axis, sightings_count on the y-axis, and used the color = sighting_year aesthetic to differentiate the years by color, using a different line for each year. The group = sighting_year indicates that each year's data will be treated as a separate group. I used geom_line() to add lines for each year and geom_point() to add individual data points for each month to help make the trends easier to follow. The labs() function added a title ("Seasonal Distribution of Rat Sightings in NYC (2010-2017)") and axis labels ("Month" and "Number of Sightings"). I included theme_minimal() for a clean look and modified the x-axis text with theme(axis.text.x = element_text(angle = 0, hjust = 1)) so that month labels are properly aligned and readable.
+
+### Saving the Plot:
+
+I finally saved the plot as both PNG and PDF files using ggsave(), with size 10 inches by 6 inches, and put the files in the "output" folder as "rat_sightings_by_sea.png" and "rat_sightings_by_sea.pdf."
+
+In brief, this code helps to group, summarize, and plot the seasonal distribution of NYC rat sightings through the years, allowing me to visualize trends in the number of sightings by month and year.
+
+```{r}
+sightings_by_month <- rat_data %>%
+  group_by(sighting_month, sighting_year) %>%
+  summarise(sightings_count = n(), .groups = 'drop') %>%
+  arrange(sighting_year, sighting_month)
+```
+
+
+```{r}
+ggplot(sightings_by_month, aes(x = sighting_month, y = sightings_count, color = sighting_year, group = sighting_year)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Seasonal Distribution of Rat Sightings in NYC (2010-2017)", 
+       x = "Month", 
+       y = "Number of Sightings") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 0, hjust = 1))
+
+# Save the plot as PNG and PDF
+ggsave("output/rat_sightings_by_sea.png", width = 10, height = 6)
+ggsave("output/rat_sightings_by_sea.pdf", width = 10, height = 6)
+```
+
+### Analyses
+
+The graph shows clear season trends in rat sightings across NYC from 2010 to 2017, with the most sightings in summer (July-August) and least in winter (December-February). The direction of the trend is upward year by year, with later years, particularly 2016 (lighter blue lines), having significantly higher rat sighting figures compared to earlier years (darker blue lines). July and August consistently have the highest sightings, with 2016 being a record year of over 2,200 sightings in July. The winter months, January and February, have the lowest counts, reflecting a seasonal decline. The vertical space between lines on the graph illustrates the annual increase in rat sightings, while the overall seasonal pattern is consistent across all years.
+
+The chart follows CRAP principles effectively, with the utilization of a blue gradient for contrast to distinguish years, despite some middle years being harder to distinguish. The consistent use of line graphics and alignment makes comparison between months and years easier. Healy's principles are met through the effective presentation of data, reducing chartjunk, and containing the appropriate level of detail for season analysis. Cairo's virtues are contained in the truthful, functional design that is beautiful and communicative, revealing both the seasonal fluctuation and the long-term increasing trend in rat sightings.
+
+## References
+
+1) ChatGPT. (2024). Claude 3.5 Sonnet [Large language model]. https://chatgpt.com/share/67c7bf7f-5bdc-8006-8cb7-147af4513384
+2) Kaggle. (n.d.). NYC rat sightings data. https://www.kaggle.com/datasets/new-york-city/nyc-rat-sightings/data
+3) Anthropic. (2024). Claude 3.5 Sonnet [Large language model].
+
+
